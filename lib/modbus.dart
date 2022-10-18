@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:serial_port_win32/serial_port_win32.dart';
 
 class MODBUS {
@@ -10,34 +11,72 @@ class MODBUS {
 
   void openSerialPort() {
     //Serial(port=PORT, baudrate=9600, bytesize=8, parity='N', stopbits=1, xonxoff=0)
-    port = SerialPort("COM15");
-    port.openWithSettings(BaudRate: 9600);
+    try {
+      port = SerialPort('COM7');
+      port.openWithSettings(BaudRate: 9600);
+      print('Port open');
+    } catch (e) {
+      print('Open port error: $e');
+    }
   }
 
   void closeSerialPort() {
-    port.close();
+    try {
+      if (port.isOpened) port.close();
+      print('Port close');
+    } catch (e) {
+      print('Close port error: $e');
+    }
   }
 
   readMODBUSData() {
-    final uint8Data = Uint8List.fromList([3, 3, 0, 0, 0, 8, 69, 238]);
+    try {
+      print('Request:');
+      final requestData = Uint8List.fromList([3, 3, 0, 0, 0, 8, 69, 238]);
+      final bool success = port.writeBytesFromUint8List(requestData);
+      if (success) print('Data sended: $requestData');
 
-    print('Request:');
-    print(port.writeBytesFromUint8List(uint8Data));
+      print('Response:');
+      port.readBytesOnListen(21, (response) {
+        print(response);
+        final bool isCrcOk = _checkCRC(response);
+        print('CRC check: $isCrcOk');
+        List<int> sensors = [];
+        if (isCrcOk)
+          sensors = _parseSensorsData(response) ?? [0, 0, 0, 0, 0, 0, 0, 0];
+        print('sensors: $sensors');
+      });
+    } catch (e) {
+      print('Request data error: $e');
+    }
+  }
 
-    print('Response:');
-    port.readBytesOnListen(21, (value) => print(value));
+  List<int>? _parseSensorsData(Uint8List response) {
+    List<int> sensors = [];
+    const delta = 1;
+    for (int sensorIndex = 1; sensorIndex <= 8; sensorIndex++) {
+      final newErrValue = response[sensorIndex * 2 + delta];
+      final newTempValue = response[sensorIndex * 2 + 1 + delta];
+      print('Sensor$sensorIndex: $newTempValue/$newErrValue');
+      sensors.add(newTempValue);
+    }
+    if (sensors.length == 8)
+      return sensors;
+    else
+      return null;
+  }
 
-    // List<Uint8List> response = [];
-    // port.readBytesOnListen(21, (value) => response.add(value));
-    //
-    // print(response);
-
-    // List<int> sensors = [];
-    //for (int sensorIndex = 1; sensorIndex <= 8; sensorIndex++) {
-    //   final newTempValue = response[sensorIndex + 2];
-    //   print(newTempValue);
-    //sensors.add(newTempValue);
-    //   }
+  bool _checkCRC(Uint8List response) {
+    try {
+      if (response.lengthInBytes != 21) return false;
+      var responseBody = response.sublist(0, 19);
+      var responseCRC = response.sublist(19, 21);
+      var calcCRC = _crc(responseBody);
+      return listEquals(responseCRC, calcCRC);
+    } catch (e) {
+      print('CRC calculation error: $e');
+      return false;
+    }
   }
 
   Uint8List _crc(Uint8List bytes) {
@@ -58,6 +97,10 @@ class MODBUS {
     //return crc.toUnsigned(16).toInt();
     var ret = Uint8List(2);
     ByteData.view(ret.buffer).setUint16(0, crc.toUnsigned(16).toInt());
-    return ret;
+
+    var reversedRet = Uint8List(2);
+    reversedRet[0] = ret[1];
+    reversedRet[1] = ret[0];
+    return reversedRet;
   }
 }

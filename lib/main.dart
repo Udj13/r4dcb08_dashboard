@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:r4dcb08_dashboard/setup_screen.dart';
+import 'setup_screen.dart';
 
 import 'modbus.dart';
 
@@ -57,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               );
             },
-            icon: Icon(Icons.settings),
+            icon: const Icon(Icons.settings),
           ),
         ],
       ),
@@ -76,23 +76,23 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {
                 modbus.openSerialPort();
               },
-              child: Text('Open Port'),
+              child: const Text('Open Port'),
             ),
             OutlinedButton(
               onPressed: () {
                 _read();
               },
-              child: Text('Read data'),
+              child: const Text('Read data'),
             ),
             OutlinedButton(
               onPressed: () {},
-              child: Text('Update data'),
+              child: const Text('Update data'),
             ),
             OutlinedButton(
               onPressed: () {
                 modbus.closeSerialPort();
               },
-              child: Text('Close Port'),
+              child: const Text('Close Port'),
             ),
           ],
         ),
