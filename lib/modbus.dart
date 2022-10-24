@@ -1,18 +1,14 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:serial_port_win32/serial_port_win32.dart';
+import 'data.dart';
 
 class MODBUS {
   late SerialPort port;
 
-  // List<String> getSerialPortsList() {
-  //   return SerialPort.getAvailablePorts();
-  // }
-
   void openSerialPort() {
-    //Serial(port=PORT, baudrate=9600, bytesize=8, parity='N', stopbits=1, xonxoff=0)
     try {
-      port = SerialPort('COM7');
+      port = SerialPort(com);
       port.openWithSettings(BaudRate: 9600);
       print('Port open');
     } catch (e) {
@@ -56,9 +52,10 @@ class MODBUS {
     const delta = 1;
     for (int sensorIndex = 1; sensorIndex <= 8; sensorIndex++) {
       final newErrValue = response[sensorIndex * 2 + delta];
-      final newTempValue = response[sensorIndex * 2 + 1 + delta];
+      final newTempValue = response[sensorIndex * 2 + 1 + delta] +
+          response[sensorIndex * 2 + delta] * 256;
       print('Sensor$sensorIndex: $newTempValue/$newErrValue');
-      sensors.add(newTempValue);
+      sensors.add((newErrValue == 128) ? 999 : newTempValue);
     }
     if (sensors.length == 8)
       return sensors;

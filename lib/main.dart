@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'setup_screen.dart';
+import 'load_setings.dart';
 
 import 'modbus.dart';
 
@@ -14,6 +15,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    loadINIData();
     return MaterialApp(
       title: 'Temperature dashboard',
       theme: ThemeData(
