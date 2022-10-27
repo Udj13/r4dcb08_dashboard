@@ -5,7 +5,6 @@ import 'load_setings.dart';
 import 'modbus.dart';
 
 void main() {
-  loadINIData();
   runApp(const MyApp());
 }
 
@@ -39,9 +38,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    if (!modbus.isPollingSensorsOn) {
-      modbus.startR4DCB08Read();
-    }
+    loadINIData();
   }
 
   void _changePollingSensorsStatus() {

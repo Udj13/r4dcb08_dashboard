@@ -35,6 +35,8 @@ dependencies:
 
   # https://pub.dev/packages/serial_port_win32
   serial_port_win32: ^0.5.2
+  # https://pub.dev/packages/ini
+  ini: ^2.1.0
 
 
 

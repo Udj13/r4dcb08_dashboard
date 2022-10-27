@@ -7,7 +7,6 @@ import 'data.dart';
 
 class MODBUS {
   SerialPort port = SerialPort(com);
-  int _current_index = 0;
 
   bool isPollingSensorsOn = false;
 
@@ -15,10 +14,10 @@ class MODBUS {
   bool _openSerialPort() {
     try {
       port.openWithSettings(BaudRate: 9600);
-      print('Port open');
+      print('$com port open');
       return true;
     } catch (e) {
-      print('Open port error: $e');
+      print('Open $com port error: $e');
     }
     return false;
   }
@@ -26,7 +25,7 @@ class MODBUS {
   void _closeSerialPort() {
     try {
       if (port.isOpened) port.close();
-      print('Port close');
+      print('$com port close');
     } catch (e) {
       print('Close port error: $e');
     }
@@ -37,6 +36,7 @@ class MODBUS {
   void startR4DCB08Read() {
     isPollingSensorsOn = true;
     print('Start polling');
+    _closeSerialPort();
     Timer.periodic(Duration(seconds: 1), (timer) {
       _readAllR4DCB08(listOfR4DCB08);
       if (!isPollingSensorsOn) {
@@ -48,13 +48,14 @@ class MODBUS {
   }
 
   void _callbackNewDataReceived(int device, List<Sensor> sensors) {
-    print('Gotcha!');
+    //TODO: new stream event listOfR4DCB08DataStream
   }
 
   void _readAllR4DCB08(List<R4DCB08> list) {
     for (var device in list) {
       if (!port.isOpened) {
         _openSerialPort();
+        sleep(const Duration(milliseconds: 200));
       }
       _readR4DCB08Data(device.address);
       sleep(const Duration(milliseconds: 200));

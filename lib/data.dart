@@ -14,9 +14,11 @@ class Sensor {
 class R4DCB08 {
   int address;
   List<Sensor> sensors;
+  List<String> names;
   R4DCB08(
     this.address,
     this.sensors,
+    this.names,
   );
 }
 
