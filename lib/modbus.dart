@@ -1,22 +1,29 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:serial_port_win32/serial_port_win32.dart';
 import 'data.dart';
 
 class MODBUS {
-  late SerialPort port;
+  SerialPort port = SerialPort(com);
+  int _current_index = 0;
 
-  void openSerialPort() {
+  bool isPollingSensorsOn = false;
+
+  // ============== COM port ===============================
+  bool _openSerialPort() {
     try {
-      port = SerialPort(com);
       port.openWithSettings(BaudRate: 9600);
       print('Port open');
+      return true;
     } catch (e) {
       print('Open port error: $e');
     }
+    return false;
   }
 
-  void closeSerialPort() {
+  void _closeSerialPort() {
     try {
       if (port.isOpened) port.close();
       print('Port close');
@@ -25,41 +32,87 @@ class MODBUS {
     }
   }
 
-  readMODBUSData() {
-    try {
-      print('Request:');
-      final requestData = Uint8List.fromList([3, 3, 0, 0, 0, 8, 69, 238]);
-      final bool success = port.writeBytesFromUint8List(requestData);
-      if (success) print('Data sended: $requestData');
+  //============== R4DCB08 ===========================================
 
-      print('Response:');
-      port.readBytesOnListen(21, (response) {
-        print(response);
-        final bool isCrcOk = _checkCRC(response);
-        print('CRC check: $isCrcOk');
-        List<int> sensors = [];
-        if (isCrcOk)
-          sensors = _parseSensorsData(response) ?? [0, 0, 0, 0, 0, 0, 0, 0];
-        print('sensors: $sensors');
-      });
-    } catch (e) {
-      print('Request data error: $e');
+  void startR4DCB08Read() {
+    isPollingSensorsOn = true;
+    print('Start polling');
+    Timer.periodic(Duration(seconds: 1), (timer) {
+      _readAllR4DCB08(listOfR4DCB08);
+      if (!isPollingSensorsOn) {
+        timer.cancel();
+        _closeSerialPort();
+        print('Stop polling');
+      }
+    });
+  }
+
+  void _callbackNewDataReceived(int device, List<Sensor> sensors) {
+    print('Gotcha!');
+  }
+
+  void _readAllR4DCB08(List<R4DCB08> list) {
+    for (var device in list) {
+      if (!port.isOpened) {
+        _openSerialPort();
+      }
+      _readR4DCB08Data(device.address);
+      sleep(const Duration(milliseconds: 200));
     }
   }
 
-  List<int>? _parseSensorsData(Uint8List response) {
-    List<int> sensors = [];
-    const delta = 1;
-    for (int sensorIndex = 1; sensorIndex <= 8; sensorIndex++) {
-      final newErrValue = response[sensorIndex * 2 + delta];
-      final newTempValue = response[sensorIndex * 2 + 1 + delta] +
-          response[sensorIndex * 2 + delta] * 256;
-      print('Sensor$sensorIndex: $newTempValue/$newErrValue');
-      sensors.add((newErrValue == 128) ? 999 : newTempValue);
+  bool _readR4DCB08Data(int device) {
+    try {
+      print('--------------------------------------------------');
+//      final requestData = Uint8List.fromList([3, 3, 0, 0, 0, 8, 69, 238]); example
+      final requestBody = Uint8List.fromList([device, 3, 0, 0, 0, 8]);
+      final requestCRC = Uint8List.fromList(_crc(requestBody));
+      final requestData = Uint8List.fromList(requestBody + requestCRC);
+
+      final bool success = port.writeBytesFromUint8List(requestData);
+      if (success) {
+        print('Request: $requestData');
+      } else {
+        print('Request error');
+        _closeSerialPort();
+        return false;
+      }
+
+      port.readBytesOnListen(21, (response) {
+        final bool isCrcOk = _checkCRC(response);
+        print('Response: $response, (CRC check: ${isCrcOk ? 'Ok' : 'failed'})');
+        if (isCrcOk) {
+          _parseSensorsData(response, device); // check fo NULL!!!
+          return true;
+        }
+      });
+    } catch (e) {
+      print('Request data error: $e');
+      return false;
     }
-    if (sensors.length == 8)
+    return false;
+  }
+
+  List<Sensor>? _parseSensorsData(Uint8List response, int device) {
+    //async response!!!!
+    List<Sensor> sensors = [];
+    String parsedString = '';
+    for (int sensorIndex = 1; sensorIndex <= 8; sensorIndex++) {
+      final newErrValue = response[sensorIndex * 2 + 1];
+      final newTempValue =
+          response[sensorIndex * 2 + 2] + response[sensorIndex * 2 + 1] * 256;
+      parsedString +=
+          '[#$sensorIndex: ${(newErrValue == 128) ? 'NA' : (newTempValue / 10)}] ';
+      sensors.add(Sensor(
+        (newErrValue == 128) ? 0 : newTempValue,
+        !(newErrValue == 128),
+      ));
+    }
+    if (sensors.length == 8) {
+      print('Parsing successful: $parsedString');
+      _callbackNewDataReceived(device, sensors);
       return sensors;
-    else
+    } else
       return null;
   }
 

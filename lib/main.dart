@@ -5,6 +5,7 @@ import 'load_setings.dart';
 import 'modbus.dart';
 
 void main() {
+  loadINIData();
   runApp(const MyApp());
 }
 
@@ -15,7 +16,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    loadINIData();
     return MaterialApp(
       title: 'Temperature dashboard',
       theme: ThemeData(
@@ -36,12 +36,21 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String textData = '';
+  @override
+  void initState() {
+    super.initState();
+    if (!modbus.isPollingSensorsOn) {
+      modbus.startR4DCB08Read();
+    }
+  }
 
-  void _read() {
+  void _changePollingSensorsStatus() {
     setState(() {
-      modbus.readMODBUSData();
-      textData = 'ok';
+      if (!modbus.isPollingSensorsOn) {
+        modbus.startR4DCB08Read();
+      } else {
+        modbus.isPollingSensorsOn = false;
+      }
     });
   }
 
@@ -70,39 +79,16 @@ class _MyHomePageState extends State<MyHomePage> {
             const Text(
               'You have pushed the button this many times:',
             ),
-            Text(
-              'Data: $textData',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-            OutlinedButton(
-              onPressed: () {
-                modbus.openSerialPort();
-              },
-              child: const Text('Open Port'),
-            ),
-            OutlinedButton(
-              onPressed: () {
-                _read();
-              },
-              child: const Text('Read data'),
-            ),
-            OutlinedButton(
-              onPressed: () {},
-              child: const Text('Update data'),
-            ),
-            OutlinedButton(
-              onPressed: () {
-                modbus.closeSerialPort();
-              },
-              child: const Text('Close Port'),
-            ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _read,
+        onPressed: _changePollingSensorsStatus,
         tooltip: 'Read data',
-        child: const Icon(Icons.read_more),
+        backgroundColor: modbus.isPollingSensorsOn ? Colors.blue : Colors.red,
+        child: modbus.isPollingSensorsOn
+            ? const Icon(Icons.play_arrow)
+            : const Icon(Icons.stop),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
