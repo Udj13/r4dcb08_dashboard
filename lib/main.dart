@@ -99,20 +99,23 @@ class DeviceWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Widget> sensorWingets = [];
     for (var sensorIndex = 0; sensorIndex <= 7; sensorIndex++) {
-      //TODO
+      final String tempString = device.sensors[sensorIndex].isConnect
+          ? (device.sensors[sensorIndex].temp / 10).toString()
+          : 'NA';
+      sensorWingets.add(
+        Padding(
+          padding: EdgeInsets.all(8),
+          child: SensorWidget(
+            temperature: tempString,
+            name: device.names[sensorIndex],
+          ),
+        ),
+      );
     }
     return Card(
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: EdgeInsets.all(8),
-            child: SensorWidget(
-              temperature: '45.5',
-              name: 'курятник',
-            ),
-          ),
-        ],
+        children: sensorWingets,
       ),
     );
   }
