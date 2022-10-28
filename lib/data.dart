@@ -23,6 +23,3 @@ class R4DCB08 {
 }
 
 List<R4DCB08> listOfR4DCB08 = [];
-
-var _streamController = StreamController<List<R4DCB08>>.broadcast();
-Stream<List<R4DCB08>> get listOfR4DCB08DataStream => _streamController.stream;

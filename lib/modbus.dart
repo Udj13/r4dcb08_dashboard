@@ -10,6 +10,13 @@ class MODBUS {
 
   bool isPollingSensorsOn = false;
 
+  final _streamNewDataController = StreamController<List<R4DCB08>>.broadcast();
+  Stream<List<R4DCB08>> get listOfR4DCB08DataStream =>
+      _streamNewDataController.stream;
+
+  final _streamStatusController = StreamController<bool>.broadcast();
+  Stream<bool> get statusMODBUSDataStream => _streamStatusController.stream;
+
   // ============== COM port ===============================
   bool _openSerialPort() {
     try {
@@ -23,6 +30,7 @@ class MODBUS {
   }
 
   void _closeSerialPort() {
+    _streamStatusController.add(false);
     try {
       if (port.isOpened) port.close();
       print('$com port close');
@@ -40,6 +48,7 @@ class MODBUS {
     Timer.periodic(Duration(seconds: 1), (timer) {
       _readAllR4DCB08(listOfR4DCB08);
       if (!isPollingSensorsOn) {
+        //switch off
         timer.cancel();
         _closeSerialPort();
         print('Stop polling');
@@ -47,8 +56,14 @@ class MODBUS {
     });
   }
 
-  void _callbackNewDataReceived(int device, List<Sensor> sensors) {
-    //TODO: new stream event listOfR4DCB08DataStream
+  void _callbackNewDataReceived(int deviceAddress, List<Sensor> sensors) {
+    for (var device in listOfR4DCB08) {
+      if (device.address == deviceAddress) {
+        device.sensors = sensors;
+      }
+    }
+    _streamNewDataController.add(listOfR4DCB08);
+    _streamStatusController.add(true);
   }
 
   void _readAllR4DCB08(List<R4DCB08> list) {
@@ -69,6 +84,8 @@ class MODBUS {
       final requestBody = Uint8List.fromList([device, 3, 0, 0, 0, 8]);
       final requestCRC = Uint8List.fromList(_crc(requestBody));
       final requestData = Uint8List.fromList(requestBody + requestCRC);
+
+      _streamStatusController.add(false);
 
       final bool success = port.writeBytesFromUint8List(requestData);
       if (success) {

@@ -56,6 +56,20 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        leading: StreamBuilder<bool>(
+            stream: modbus.statusMODBUSDataStream,
+            builder: (context, snapshot) {
+              if (snapshot.data == true) {
+                return const Icon(
+                  Icons.circle,
+                  color: Colors.green,
+                );
+              }
+              return const Icon(
+                Icons.circle,
+                color: Colors.red,
+              );
+            }),
         actions: [
           IconButton(
             onPressed: () {
@@ -69,6 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
+
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
