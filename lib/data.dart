@@ -1,6 +1,4 @@
-import 'dart:async';
-
-String com = 'COM7';
+String? com;
 
 class Sensor {
   int temp;

@@ -3,6 +3,7 @@ import 'setup_screen.dart';
 import 'load_setings.dart';
 
 import 'modbus.dart';
+import 'data.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,8 +38,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
-    super.initState();
     loadINIData();
+    super.initState();
   }
 
   void _changePollingSensorsStatus() {
@@ -56,44 +57,25 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        leading: StreamBuilder<bool>(
-            stream: modbus.statusMODBUSDataStream,
-            builder: (context, snapshot) {
-              if (snapshot.data == true) {
-                return const Icon(
-                  Icons.circle,
-                  color: Colors.green,
-                );
-              }
-              return const Icon(
-                Icons.circle,
-                color: Colors.red,
-              );
-            }),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const SetupScreen(),
-                ),
-              );
-            },
-            icon: const Icon(Icons.settings),
-          ),
-        ],
+        leading: const StatusIndicator(),
+        // actions: const [
+        //   OpenSettings(),
+        // ],
       ),
 
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-          ],
-        ),
-      ),
+      body: StreamBuilder<List<R4DCB08>>(
+          stream: modbus.listOfR4DCB08DataStream,
+          builder: (context, snapshot) {
+            List<Widget> deviceWidgets = [];
+            if (snapshot.hasData) {
+              var devicesList = snapshot.data!;
+              for (var dev in devicesList) {
+                deviceWidgets.add(DeviceWidget(device: dev));
+              }
+            }
+            return ListView(children: deviceWidgets);
+          }),
+
       floatingActionButton: FloatingActionButton(
         onPressed: _changePollingSensorsStatus,
         tooltip: 'Read data',
@@ -103,5 +85,124 @@ class _MyHomePageState extends State<MyHomePage> {
             : const Icon(Icons.stop),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+}
+
+class DeviceWidget extends StatelessWidget {
+  final R4DCB08 device;
+  const DeviceWidget({
+    Key? key,
+    required this.device,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> sensorWingets = [];
+    for (var sensorIndex = 0; sensorIndex <= 7; sensorIndex++) {
+      //TODO
+    }
+    return Card(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: EdgeInsets.all(8),
+            child: SensorWidget(
+              temperature: '45.5',
+              name: 'курятник',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SensorWidget extends StatelessWidget {
+  final String temperature;
+  final String name;
+  const SensorWidget({
+    Key? key,
+    required this.temperature,
+    required this.name,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(8),
+      height: 100,
+      width: 100,
+      color: Colors.lightBlueAccent.shade100,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            temperature,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontFamily: 'Roboto',
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            name,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class OpenSettings extends StatelessWidget {
+  const OpenSettings({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => const SetupScreen(),
+          ),
+        );
+      },
+      icon: const Icon(Icons.settings),
+    );
+  }
+}
+
+class StatusIndicator extends StatelessWidget {
+  const StatusIndicator({
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<bool>(
+        stream: modbus.statusMODBUSDataStream,
+        builder: (context, snapshot) {
+          int indColor = 0;
+          if (snapshot.hasData) {
+            if (snapshot.data! == true) {
+              indColor = 255;
+            }
+          }
+          return TweenAnimationBuilder<int>(
+              tween: IntTween(begin: 0, end: indColor),
+              duration: const Duration(milliseconds: 200),
+              builder: (BuildContext context, int levelColor, Widget? child) {
+                return Icon(
+                  Icons.circle,
+                  color: Color.fromRGBO((255 - levelColor), levelColor, 0, 1.0),
+                );
+              });
+        });
   }
 }

@@ -6,7 +6,7 @@ import 'package:serial_port_win32/serial_port_win32.dart';
 import 'data.dart';
 
 class MODBUS {
-  SerialPort port = SerialPort(com);
+  SerialPort? port;
 
   bool isPollingSensorsOn = false;
 
@@ -20,9 +20,17 @@ class MODBUS {
   // ============== COM port ===============================
   bool _openSerialPort() {
     try {
-      port.openWithSettings(BaudRate: 9600);
-      print('$com port open');
-      return true;
+      if (com == null) {
+        print('Serial port not defined');
+        return false;
+      }
+      if (port == null) {
+        port = SerialPort(com!);
+      } else if (port?.isOpened == false) {
+        port?.openWithSettings(BaudRate: 9600);
+        print('$com port open');
+        return true;
+      }
     } catch (e) {
       print('Open $com port error: $e');
     }
@@ -32,7 +40,7 @@ class MODBUS {
   void _closeSerialPort() {
     _streamStatusController.add(false);
     try {
-      if (port.isOpened) port.close();
+      if (port?.isOpened == true) port?.close();
       print('$com port close');
     } catch (e) {
       print('Close port error: $e');
@@ -45,11 +53,14 @@ class MODBUS {
     isPollingSensorsOn = true;
     print('Start polling');
     _closeSerialPort();
+    sleep(const Duration(milliseconds: 500));
     Timer.periodic(Duration(seconds: 1), (timer) {
       _readAllR4DCB08(listOfR4DCB08);
       if (!isPollingSensorsOn) {
         //switch off
-        timer.cancel();
+        if (timer.isActive) {
+          timer.cancel();
+        }
         _closeSerialPort();
         print('Stop polling');
       }
@@ -68,9 +79,15 @@ class MODBUS {
 
   void _readAllR4DCB08(List<R4DCB08> list) {
     for (var device in list) {
-      if (!port.isOpened) {
+      if (port == null) {
         _openSerialPort();
         sleep(const Duration(milliseconds: 200));
+        return;
+      }
+      if (port?.isOpened == false) {
+        _openSerialPort();
+        sleep(const Duration(milliseconds: 200));
+        return;
       }
       _readR4DCB08Data(device.address);
       sleep(const Duration(milliseconds: 200));
@@ -86,8 +103,9 @@ class MODBUS {
       final requestData = Uint8List.fromList(requestBody + requestCRC);
 
       _streamStatusController.add(false);
+      if (port == null) return false;
 
-      final bool success = port.writeBytesFromUint8List(requestData);
+      final bool success = port!.writeBytesFromUint8List(requestData);
       if (success) {
         print('Request: $requestData');
       } else {
@@ -96,7 +114,7 @@ class MODBUS {
         return false;
       }
 
-      port.readBytesOnListen(21, (response) {
+      port?.readBytesOnListen(21, (response) {
         final bool isCrcOk = _checkCRC(response);
         print('Response: $response, (CRC check: ${isCrcOk ? 'Ok' : 'failed'})');
         if (isCrcOk) {
@@ -117,8 +135,12 @@ class MODBUS {
     String parsedString = '';
     for (int sensorIndex = 1; sensorIndex <= 8; sensorIndex++) {
       final newErrValue = response[sensorIndex * 2 + 1];
-      final newTempValue =
+      var newTempValue =
           response[sensorIndex * 2 + 2] + response[sensorIndex * 2 + 1] * 256;
+      // TODO: checking for a negative value
+      // if (newTempValue > 127) {
+      //   newTempValue -= 256;
+      // }
       parsedString +=
           '[#$sensorIndex: ${(newErrValue == 128) ? 'NA' : (newTempValue / 10)}] ';
       sensors.add(Sensor(
