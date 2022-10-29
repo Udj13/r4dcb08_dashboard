@@ -6,9 +6,17 @@ import 'package:serial_port_win32/serial_port_win32.dart';
 import 'data.dart';
 
 class MODBUS {
+  static const _watchDogTimerSeconds = 30;
+  static const _dataReadingIntervalSeconds = 1;
+
+  Function(String)? showError;
+  bool _errorIsNotShow = true;
+
   SerialPort? port;
 
   bool isPollingSensorsOn = false;
+
+  DateTime _lastDataTime = DateTime.now();
 
   final _streamNewDataController = StreamController<List<R4DCB08>>.broadcast();
   Stream<List<R4DCB08>> get listOfR4DCB08DataStream =>
@@ -33,6 +41,10 @@ class MODBUS {
       }
     } catch (e) {
       print('Open $com port error: $e');
+      if ((showError != null) && (_errorIsNotShow)) {
+        _errorIsNotShow = false;
+        showError!("Can't open $com port");
+      }
     }
     return false;
   }
@@ -44,9 +56,26 @@ class MODBUS {
       print('$com port close');
     } catch (e) {
       print('Close port error: $e');
+      if ((showError != null) && (_errorIsNotShow)) {
+        _errorIsNotShow = false;
+        showError!("Can't close $com port");
+      }
     }
   }
 
+  void _watchdogTimerChecker() {
+    var timeNow = DateTime.now();
+    if (timeNow.difference(_lastDataTime).inSeconds > _watchDogTimerSeconds) {
+      print('Data is not receiving. Closing port by watchdog timer.');
+      _lastDataTime = timeNow;
+      _closeSerialPort();
+    }
+  }
+
+  void _watchdogTimerDataReceived() {
+    _lastDataTime = DateTime.now();
+    _errorIsNotShow = true;
+  }
   //============== R4DCB08 ===========================================
 
   void startR4DCB08Read() {
@@ -54,7 +83,7 @@ class MODBUS {
     print('Start polling');
     _closeSerialPort();
     sleep(const Duration(milliseconds: 500));
-    Timer.periodic(Duration(seconds: 1), (timer) {
+    Timer.periodic(Duration(seconds: _dataReadingIntervalSeconds), (timer) {
       _readAllR4DCB08(listOfR4DCB08);
       if (!isPollingSensorsOn) {
         //switch off
@@ -68,6 +97,7 @@ class MODBUS {
   }
 
   void _callbackNewDataReceived(int deviceAddress, List<Sensor> sensors) {
+    _watchdogTimerDataReceived();
     for (var device in listOfR4DCB08) {
       if (device.address == deviceAddress) {
         device.sensors = sensors;
@@ -78,6 +108,7 @@ class MODBUS {
   }
 
   void _readAllR4DCB08(List<R4DCB08> list) {
+    _watchdogTimerChecker();
     for (var device in list) {
       if (port == null) {
         _openSerialPort();

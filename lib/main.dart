@@ -36,9 +36,40 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  void _callbackShowErrorFunc(String error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Icon(
+              Icons.warning_amber,
+              color: Colors.yellowAccent,
+            ),
+            SizedBox(width: 10),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 10),
+        width: 280.0, // Width of the SnackBar.
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8.0, // Inner padding for SnackBar content.
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     loadINIData();
+    modbus.showError = _callbackShowErrorFunc;
     super.initState();
   }
 
@@ -58,6 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
         leading: const StatusIndicator(),
+
         // actions: const [
         //   OpenSettings(),
         // ],
@@ -108,6 +140,7 @@ class DeviceWidget extends StatelessWidget {
           child: SensorWidget(
             temperature: tempString,
             name: device.names[sensorIndex],
+            isActive: device.sensors[sensorIndex].isConnect,
           ),
         ),
       );
@@ -124,10 +157,12 @@ class DeviceWidget extends StatelessWidget {
 class SensorWidget extends StatelessWidget {
   final String temperature;
   final String name;
+  final bool isActive;
   const SensorWidget({
     Key? key,
     required this.temperature,
     required this.name,
+    required this.isActive,
   }) : super(key: key);
 
   @override
@@ -136,7 +171,7 @@ class SensorWidget extends StatelessWidget {
       padding: EdgeInsets.all(8),
       height: 100,
       width: 100,
-      color: Colors.lightBlueAccent.shade100,
+      color: isActive ? Colors.lightBlueAccent.shade100 : Colors.black26,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -144,8 +179,8 @@ class SensorWidget extends StatelessWidget {
             temperature,
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.black87,
+            style: TextStyle(
+              color: isActive ? Colors.black87 : Colors.red.shade300,
               fontFamily: 'Roboto',
               fontSize: 30,
               fontWeight: FontWeight.bold,

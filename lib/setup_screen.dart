@@ -23,18 +23,9 @@ class _SetupScreenState extends State<SetupScreen> {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-          ],
+          children: const <Widget>[],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addDevice,
-        tooltip: 'Add device',
-        child: const Icon(Icons.plus_one),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
