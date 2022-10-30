@@ -34,3 +34,12 @@ class R4DCB08 {
 }
 
 List<R4DCB08> listOfR4DCB08 = [];
+
+void clearAllSensorData() {
+  final List<Sensor> emptySensors = [
+    for (var i = 0; i < 8; i += 1) Sensor(0, false)
+  ];
+  for (var device in listOfR4DCB08) {
+    device.sensors = emptySensors;
+  }
+}

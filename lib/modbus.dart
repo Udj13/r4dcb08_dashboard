@@ -5,7 +5,7 @@ import 'package:serial_port_win32/serial_port_win32.dart';
 import 'data.dart';
 
 class MODBUS {
-  static const _watchDogTimerSeconds = 30;
+  static const _watchDogTimerSeconds = 10;
   static const _dataReadingIntervalSeconds = 1;
 
   Function(String)? showError;
@@ -35,7 +35,9 @@ class MODBUS {
       }
       if (port == null) {
         port = SerialPort(com!);
-      } else if (port?.isOpened == false) {
+        port!.close();
+      }
+      if (port?.isOpened == false) {
         port?.openWithSettings(BaudRate: 9600);
         if (kDebugMode) {
           print('$com port open');
@@ -80,6 +82,10 @@ class MODBUS {
       }
       _lastDataTime = timeNow;
       _closeSerialPort();
+
+      clearAllSensorData();
+      _streamNewDataController.add(listOfR4DCB08);
+      _streamStatusController.add(false);
     }
   }
 
