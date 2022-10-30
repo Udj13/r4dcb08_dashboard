@@ -1,16 +1,41 @@
-# r4dcb08_dashboard_flutter
+# r4dcb08 dashboard (Flutter, Windows)
 
-r4dcb08_dashboard_flutter
+## Description
+Light dashboard for RS 485 r4dcb08 boards. 
 
-## Getting Started
+![image](https://user-images.githubusercontent.com/54446451/198876062-605a7f91-13fb-41c2-b4c1-a81803ab9ff0.png)
 
-This project is a starting point for a Flutter application.
+![image](https://user-images.githubusercontent.com/54446451/198876356-dfda8ff5-ab70-4b3a-a4c3-b31f90830ab4.png)
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Settings
+Please, open and edit the config.ini file.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+[general]
+serial = COM7 <- serial port
+minimum = 5 <- controlled range
+maximum = 25 <- controlled range
+
+[2] <- device network address
+sensor1 = aaa <- sensor name
+sensor2 = bbb
+sensor3 = ccc
+sensor4 = ddd
+sensor5 = eee
+sensor6 = fff
+sensor7 = ggg
+sensor8 = qqq
+
+[3]
+sensor1 = aaa
+sensor2 = bbb
+sensor3 = ccc
+sensor4 = ddd
+sensor5 = eee
+sensor6 = fff
+sensor7 = ggg
+sensor8 = qqq
+
+```
+
