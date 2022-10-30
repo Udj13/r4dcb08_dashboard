@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:serial_port_win32/serial_port_win32.dart';
 import 'data.dart';
@@ -29,18 +28,24 @@ class MODBUS {
   bool _openSerialPort() {
     try {
       if (com == null) {
-        print('Serial port not defined');
+        if (kDebugMode) {
+          print('Serial port not defined');
+        }
         return false;
       }
       if (port == null) {
         port = SerialPort(com!);
       } else if (port?.isOpened == false) {
         port?.openWithSettings(BaudRate: 9600);
-        print('$com port open');
+        if (kDebugMode) {
+          print('$com port open');
+        }
         return true;
       }
     } catch (e) {
-      print('Open $com port error: $e');
+      if (kDebugMode) {
+        print('Open $com port error: $e');
+      }
       if ((showError != null) && (_errorIsNotShow)) {
         _errorIsNotShow = false;
         showError!("Can't open $com port");
@@ -53,9 +58,13 @@ class MODBUS {
     _streamStatusController.add(false);
     try {
       if (port?.isOpened == true) port?.close();
-      print('$com port close');
+      if (kDebugMode) {
+        print('$com port close');
+      }
     } catch (e) {
-      print('Close port error: $e');
+      if (kDebugMode) {
+        print('Close port error: $e');
+      }
       if ((showError != null) && (_errorIsNotShow)) {
         _errorIsNotShow = false;
         showError!("Can't close $com port");
@@ -66,7 +75,9 @@ class MODBUS {
   void _watchdogTimerChecker() {
     var timeNow = DateTime.now();
     if (timeNow.difference(_lastDataTime).inSeconds > _watchDogTimerSeconds) {
-      print('Data is not receiving. Closing port by watchdog timer.');
+      if (kDebugMode) {
+        print('Data is not receiving. Closing port by watchdog timer.');
+      }
       _lastDataTime = timeNow;
       _closeSerialPort();
     }
@@ -80,10 +91,13 @@ class MODBUS {
 
   void startR4DCB08Read() {
     isPollingSensorsOn = true;
-    print('Start polling');
+    if (kDebugMode) {
+      print('Start polling');
+    }
     _closeSerialPort();
     sleep(const Duration(milliseconds: 500));
-    Timer.periodic(Duration(seconds: _dataReadingIntervalSeconds), (timer) {
+    Timer.periodic(const Duration(seconds: _dataReadingIntervalSeconds),
+        (timer) {
       _readAllR4DCB08(listOfR4DCB08);
       if (!isPollingSensorsOn) {
         //switch off
@@ -91,9 +105,15 @@ class MODBUS {
           timer.cancel();
         }
         _closeSerialPort();
-        print('Stop polling');
+        if (kDebugMode) {
+          print('Stop polling');
+        }
       }
     });
+  }
+
+  void stopR4DCB08Read() {
+    _closeSerialPort();
   }
 
   void _callbackNewDataReceived(int deviceAddress, List<Sensor> sensors) {
@@ -127,7 +147,9 @@ class MODBUS {
 
   bool _readR4DCB08Data(int device) {
     try {
-      print('--------------------------------------------------');
+      if (kDebugMode) {
+        print('--------------------------------------------------');
+      }
 //      final requestData = Uint8List.fromList([3, 3, 0, 0, 0, 8, 69, 238]); example
       final requestBody = Uint8List.fromList([device, 3, 0, 0, 0, 8]);
       final requestCRC = Uint8List.fromList(_crc(requestBody));
@@ -138,23 +160,32 @@ class MODBUS {
 
       final bool success = port!.writeBytesFromUint8List(requestData);
       if (success) {
-        print('Request: $requestData');
+        if (kDebugMode) {
+          print('Request: $requestData');
+        }
       } else {
-        print('Request error');
+        if (kDebugMode) {
+          print('Request error');
+        }
         _closeSerialPort();
         return false;
       }
 
       port?.readBytesOnListen(21, (response) {
         final bool isCrcOk = _checkCRC(response);
-        print('Response: $response, (CRC check: ${isCrcOk ? 'Ok' : 'failed'})');
+        if (kDebugMode) {
+          print(
+              'Response: $response, (CRC check: ${isCrcOk ? 'Ok' : 'failed'})');
+        }
         if (isCrcOk) {
           _parseSensorsData(response, device); // check fo NULL!!!
           return true;
         }
       });
     } catch (e) {
-      print('Request data error: $e');
+      if (kDebugMode) {
+        print('Request data error: $e');
+      }
       return false;
     }
     return false;
@@ -168,10 +199,10 @@ class MODBUS {
       final newErrValue = response[sensorIndex * 2 + 1];
       var newTempValue =
           response[sensorIndex * 2 + 2] + response[sensorIndex * 2 + 1] * 256;
-      // TODO: checking for a negative value
-      // if (newTempValue > 127) {
-      //   newTempValue -= 256;
-      // }
+      // checking for a negative value
+      if (newTempValue > 0xFF00) {
+        newTempValue -= 65535;
+      }
       parsedString +=
           '[#$sensorIndex: ${(newErrValue == 128) ? 'NA' : (newTempValue / 10)}] ';
       sensors.add(Sensor(
@@ -180,11 +211,14 @@ class MODBUS {
       ));
     }
     if (sensors.length == 8) {
-      print('Parsing successful: $parsedString');
+      if (kDebugMode) {
+        print('Parsing successful: $parsedString');
+      }
       _callbackNewDataReceived(device, sensors);
       return sensors;
-    } else
+    } else {
       return null;
+    }
   }
 
   bool _checkCRC(Uint8List response) {
@@ -195,7 +229,9 @@ class MODBUS {
       var calcCRC = _crc(responseBody);
       return listEquals(responseCRC, calcCRC);
     } catch (e) {
-      print('CRC calculation error: $e');
+      if (kDebugMode) {
+        print('CRC calculation error: $e');
+      }
       return false;
     }
   }

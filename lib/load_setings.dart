@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:r4dcb08_dashboard_flutter/data.dart';
 import 'package:ini/ini.dart';
 import 'dart:io';
@@ -22,9 +23,13 @@ const connectionSection = 'connection';
 File file = File(configFilePath);
 
 void _doConfigThings(Config config) {
-  print('Config loaded from ${configFilePath}');
+  if (kDebugMode) {
+    print('Config loaded from $configFilePath');
+  }
   com = config.get(connectionSection, 'serial') ?? 'COM1';
-  print('Serial port: ${com}');
+  if (kDebugMode) {
+    print('Serial port: $com');
+  }
   config.sections();
 
   config.sections().forEach((section) {
@@ -32,9 +37,9 @@ void _doConfigThings(Config config) {
       final int? device = int.tryParse(section);
       if (device != null) {
         List<String> sensorNames = [];
-        config.items(section)!.forEach((element) {
+        for (var element in config.items(section)!) {
           sensorNames.add(element[1].toString());
-        });
+        }
 
         var r4dcb08 = R4DCB08(
           device,
@@ -45,13 +50,19 @@ void _doConfigThings(Config config) {
       }
     }
   });
-  listOfR4DCB08.forEach((device) {
-    print('Device address: ${device.address}');
-    device.names.forEach((element) {
-      print(element);
-    });
-  });
-  print('After loading config start polling');
+  for (var device in listOfR4DCB08) {
+    if (kDebugMode) {
+      print('Device address: ${device.address}');
+    }
+    for (var element in device.names) {
+      if (kDebugMode) {
+        print(element);
+      }
+    }
+  }
+  if (kDebugMode) {
+    print('After loading config start polling');
+  }
   if (!modbus.isPollingSensorsOn) {
     modbus.startR4DCB08Read();
   }
@@ -62,7 +73,7 @@ void loadINIData() async {
 
   await file
       .readAsLines()
-      .then((lines) => new Config.fromStrings(lines))
+      .then((lines) => Config.fromStrings(lines))
       .then((Config config) {
     _doConfigThings(config);
   });

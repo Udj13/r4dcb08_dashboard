@@ -42,11 +42,11 @@ class _MyHomePageState extends State<MyHomePage> {
         content: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Icon(
+            const Icon(
               Icons.warning_amber,
               color: Colors.yellowAccent,
             ),
-            SizedBox(width: 10),
+            const SizedBox(width: 10),
             Text(
               error,
               textAlign: TextAlign.center,
@@ -71,6 +71,12 @@ class _MyHomePageState extends State<MyHomePage> {
     loadINIData();
     modbus.showError = _callbackShowErrorFunc;
     super.initState();
+  }
+
+  @override
+  void deactivate() {
+    modbus.stopR4DCB08Read();
+    super.deactivate();
   }
 
   void _changePollingSensorsStatus() {
@@ -136,7 +142,7 @@ class DeviceWidget extends StatelessWidget {
           : 'NA';
       sensorWingets.add(
         Padding(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           child: SensorWidget(
             temperature: tempString,
             name: device.names[sensorIndex],
@@ -168,7 +174,7 @@ class SensorWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(8),
+      padding: const EdgeInsets.all(8),
       height: 100,
       width: 100,
       color: isActive ? Colors.lightBlueAccent.shade100 : Colors.black26,
