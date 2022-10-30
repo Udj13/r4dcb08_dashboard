@@ -137,9 +137,21 @@ class DeviceWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     List<Widget> sensorWingets = [];
     for (var sensorIndex = 0; sensorIndex <= 7; sensorIndex++) {
-      final String tempString = device.sensors[sensorIndex].isConnect
-          ? (device.sensors[sensorIndex].temp / 10).toString()
-          : 'NA';
+      final double temperature = device.sensors[sensorIndex].temp / 10;
+      final String tempString =
+          device.sensors[sensorIndex].isConnect ? temperature.toString() : 'NA';
+
+      bool isOutOfRange = false;
+      if (!device.sensors[sensorIndex].isConnect) isOutOfRange = true;
+      if ((device.ranges[sensorIndex].maxLevel != null) &&
+          (temperature >= device.ranges[sensorIndex].maxLevel!)) {
+        isOutOfRange = true;
+      }
+      if ((device.ranges[sensorIndex].minLevel != null) &&
+          (temperature <= device.ranges[sensorIndex].minLevel!)) {
+        isOutOfRange = true;
+      }
+
       sensorWingets.add(
         Padding(
           padding: const EdgeInsets.all(8),
@@ -147,6 +159,7 @@ class DeviceWidget extends StatelessWidget {
             temperature: tempString,
             name: device.names[sensorIndex],
             isActive: device.sensors[sensorIndex].isConnect,
+            isOutOfRange: isOutOfRange,
           ),
         ),
       );
@@ -164,11 +177,13 @@ class SensorWidget extends StatelessWidget {
   final String temperature;
   final String name;
   final bool isActive;
+  final bool isOutOfRange;
   const SensorWidget({
     Key? key,
     required this.temperature,
     required this.name,
     required this.isActive,
+    required this.isOutOfRange,
   }) : super(key: key);
 
   @override
@@ -177,7 +192,9 @@ class SensorWidget extends StatelessWidget {
       padding: const EdgeInsets.all(8),
       height: 100,
       width: 100,
-      color: isActive ? Colors.lightBlueAccent.shade100 : Colors.black26,
+      color: (isActive)
+          ? (isOutOfRange ? Colors.redAccent : Colors.lightBlueAccent.shade100)
+          : Colors.black26,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

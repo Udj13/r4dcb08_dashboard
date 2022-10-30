@@ -18,7 +18,7 @@ List<Sensor> emptySensorsList = [
 ];
 
 const String configFilePath = "config.ini";
-const connectionSection = 'connection';
+const generalSection = 'general';
 
 File file = File(configFilePath);
 
@@ -26,14 +26,30 @@ void _doConfigThings(Config config) {
   if (kDebugMode) {
     print('Config loaded from $configFilePath');
   }
-  com = config.get(connectionSection, 'serial') ?? 'COM1';
+
+  com = config.get(generalSection, 'serial') ?? 'COM1';
   if (kDebugMode) {
     print('Serial port: $com');
   }
+
+  minLevel = double.tryParse(config.get(generalSection, 'minimum')!);
+  if (kDebugMode) {
+    print('Minimum level: $minLevel');
+  }
+
+  maxLevel = double.tryParse(config.get(generalSection, 'maximum')!);
+  if (kDebugMode) {
+    print('Maximum level: $maxLevel');
+  }
+
+  List<SensorRange> ranges = [
+    for (var i = 0; i < 8; i += 1) SensorRange(minLevel, maxLevel)
+  ];
+
   config.sections();
 
   config.sections().forEach((section) {
-    if (section != connectionSection) {
+    if (section != generalSection) {
       final int? device = int.tryParse(section);
       if (device != null) {
         List<String> sensorNames = [];
@@ -42,9 +58,10 @@ void _doConfigThings(Config config) {
         }
 
         var r4dcb08 = R4DCB08(
-          device,
-          emptySensorsList,
-          sensorNames,
+          address: device,
+          sensors: emptySensorsList,
+          names: sensorNames,
+          ranges: ranges,
         );
         listOfR4DCB08.add(r4dcb08);
       }
