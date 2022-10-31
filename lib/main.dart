@@ -114,14 +114,14 @@ class _MyHomePageState extends State<MyHomePage> {
             return ListView(children: deviceWidgets);
           }),
 
-      floatingActionButton: FloatingActionButton(
-        onPressed: _changePollingSensorsStatus,
-        tooltip: 'Read data',
-        backgroundColor: modbus.isPollingSensorsOn ? Colors.blue : Colors.red,
-        child: modbus.isPollingSensorsOn
-            ? const Icon(Icons.play_arrow)
-            : const Icon(Icons.stop),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: _changePollingSensorsStatus,
+      //   tooltip: 'Read data',
+      //   backgroundColor: modbus.isPollingSensorsOn ? Colors.blue : Colors.red,
+      //   child: modbus.isPollingSensorsOn
+      //       ? const Icon(Icons.play_arrow)
+      //       : const Icon(Icons.stop),
+      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
